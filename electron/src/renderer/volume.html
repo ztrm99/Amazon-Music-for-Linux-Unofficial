@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Volume</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #161616;
+        --panel: #202020;
+        --text: #f5f5f5;
+        --muted: #a8a8a8;
+        --accent: #ff9900;
+        --accent-soft: rgba(255, 153, 0, 0.2);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "DejaVu Sans", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(255, 153, 0, 0.18), transparent 40%),
+          linear-gradient(145deg, #151515, #0e0e0e 60%, #1a1a1a);
+        color: var(--text);
+      }
+
+      .panel {
+        margin: 20px;
+        padding: 18px 20px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        background: rgba(32, 32, 32, 0.9);
+        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+      }
+
+      .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .value {
+        color: var(--muted);
+        font-size: 14px;
+        min-width: 48px;
+        text-align: right;
+      }
+
+      input[type="range"] {
+        width: 100%;
+        margin: 18px 0 14px;
+        accent-color: var(--accent);
+      }
+
+      button {
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 14px;
+        background: var(--accent-soft);
+        color: var(--text);
+        font: inherit;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: rgba(255, 153, 0, 0.32);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="panel">
+      <div class="row">
+        <h1>Playback Volume</h1>
+        <div class="value" id="volume-value">100%</div>
+      </div>
+
+      <input id="volume-slider" type="range" min="0" max="100" step="1" value="100" />
+
+      <div class="row">
+        <div class="value" id="mute-state">Unmuted</div>
+        <button id="mute-toggle" type="button">Toggle Mute</button>
+      </div>
+    </main>
+
+    <script>
+      const slider = document.getElementById("volume-slider");
+      const valueLabel = document.getElementById("volume-value");
+      const muteLabel = document.getElementById("mute-state");
+      const muteButton = document.getElementById("mute-toggle");
+
+      function render(state) {
+        const percent = Math.round((state.volume ?? 1) * 100);
+        slider.value = String(percent);
+        valueLabel.textContent = `${percent}%`;
+        muteLabel.textContent = state.muted ? "Muted" : "Unmuted";
+      }
+
+      async function sync() {
+        const state = await window.amusizVolume.getState();
+        render(state);
+      }
+
+      slider.addEventListener("input", async () => {
+        const state = await window.amusizVolume.set(Number(slider.value) / 100);
+        render(state);
+      });
+
+      muteButton.addEventListener("click", async () => {
+        const state = await window.amusizVolume.toggleMute();
+        render(state);
+      });
+
+      void sync();
+    </script>
+  </body>
+</html>

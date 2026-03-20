@@ -1,0 +1,88 @@
+{
+  "name": "amazmsclinux",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Electron MVP wrapper for Amazon Music on Linux",
+  "main": "dist/main/index.js",
+  "author": {
+    "name": "Contributors"
+  },
+  "homepage": "https://github.com/ztrm/AmazonMusicLinux-Unofficial",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/copy-assets.mjs",
+    "dev": "npm run build && electron --no-sandbox --no-zygote --in-process-gpu --disable-gpu-sandbox --use-angle=default .",
+    "dev:debug": "npm run build && electron --no-sandbox --no-zygote --in-process-gpu --disable-gpu-sandbox --use-angle=default --remote-debugging-port=9222 .",
+    "start": "electron --no-zygote --in-process-gpu --disable-gpu-sandbox --use-angle=default .",
+    "pack": "npm run build && electron-builder --linux AppImage deb --publish never",
+    "dist:dir": "npm run build && electron-builder --dir --linux --publish never",
+    "dist:linux": "npm run build && electron-builder --linux AppImage deb pacman --publish never",
+    "dist:ubuntu": "npm run build && electron-builder --linux AppImage deb --publish never",
+    "dist:arch": "npm run build && electron-builder --linux AppImage pacman --publish never",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "electron": "https://github.com/castlabs/electron-releases#v37.8.0+wvcus",
+    "electron-builder": "^26.0.0",
+    "typescript": "^5.9.0"
+  },
+  "build": {
+    "appId": "com.amazmsclinux.app",
+    "productName": "AmazMscLinux",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "files": [
+      "dist/**/*",
+      "package.json",
+      "assets/**/*"
+    ],
+    "directories": {
+      "buildResources": "assets"
+    },
+    "linux": {
+      "icon": "assets/linux",
+      "category": "AudioVideo",
+      "executableName": "AmazMscLinux",
+      "maintainer": "Contributors",
+      "synopsis": "Unofficial Amazon Music desktop wrapper for Linux",
+      "description": "Chromium-based Amazon Music desktop wrapper built with Electron for Ubuntu and Arch-based Linux distributions.",
+      "desktop": {
+        "entry": {
+          "StartupWMClass": "AmazMscLinux",
+          "Categories": "AudioVideo;Audio;Player;"
+        }
+      },
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "pacman",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "deb": {
+      "packageCategory": "sound",
+      "priority": "optional"
+    },
+    "pacman": {
+      "packageCategory": "sound"
+    },
+    "electronDownload": {
+      "mirror": "https://github.com/castlabs/electron-releases/releases/download/v"
+    }
+  }
+}
