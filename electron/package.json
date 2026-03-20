@@ -17,9 +17,9 @@
     "start": "electron --no-zygote --in-process-gpu --disable-gpu-sandbox --use-angle=default .",
     "pack": "npm run build && electron-builder --linux AppImage deb --publish never",
     "dist:dir": "npm run build && electron-builder --dir --linux --publish never",
-    "dist:linux": "npm run build && electron-builder --linux AppImage deb pacman --publish never",
+    "dist:linux": "node scripts/check-packaging-deps.mjs linux && npm run build && electron-builder --linux AppImage deb pacman --publish never",
     "dist:ubuntu": "npm run build && electron-builder --linux AppImage deb --publish never",
-    "dist:arch": "npm run build && electron-builder --linux AppImage pacman --publish never",
+    "dist:arch": "node scripts/check-packaging-deps.mjs pacman && npm run build && electron-builder --linux AppImage pacman --publish never",
     "postinstall": "electron-builder install-app-deps"
   },
   "devDependencies": {
