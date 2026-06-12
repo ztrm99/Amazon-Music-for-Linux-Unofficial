@@ -53,6 +53,20 @@ function configureAmazonRequestHeaders(window: BrowserWindow): void {
       urls: [
         "*://amazon.com/*",
         "*://*.amazon.com/*",
+        "*://amazon.co.uk/*",
+        "*://*.amazon.co.uk/*",
+        "*://amazon.co.jp/*",
+        "*://*.amazon.co.jp/*",
+        "*://amazon.com.mx/*",
+        "*://*.amazon.com.mx/*",
+        "*://amazon.com.br/*",
+        "*://*.amazon.com.br/*",
+        "*://amazon.com.au/*",
+        "*://*.amazon.com.au/*",
+        "*://amazon.ca/*",
+        "*://*.amazon.ca/*",
+        "*://amazon.in/*",
+        "*://*.amazon.in/*",
         "*://amazon.it/*",
         "*://*.amazon.it/*",
         "*://amazon.fr/*",
@@ -184,6 +198,14 @@ export function createMainWindow(): BrowserWindow {
 
   window.once("ready-to-show", () => {
     window.show();
+  });
+
+  window.webContents.on("did-navigate", (_e, url, status) => {
+    console.log(`[nav] ${status} ${url}`);
+  });
+
+  window.webContents.on("did-navigate-in-page", (_e, url) => {
+    console.log(`[nav-inpage] ${url}`);
   });
 
   window.webContents.setUserAgent(buildChromeUserAgent());

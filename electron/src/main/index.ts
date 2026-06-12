@@ -1,11 +1,14 @@
 import * as electron from "electron";
+import fs from "node:fs";
+import path from "node:path";
 
 const {
   BrowserWindow,
   Menu,
   app,
   ipcMain,
-  nativeTheme
+  nativeTheme,
+  session
 } = electron;
 
 type ComponentsApi = {
@@ -17,7 +20,7 @@ const components = (electron as typeof electron & {
   components?: ComponentsApi;
 }).components;
 
-import { WINDOW_TITLE } from "../shared/config.js";
+import { AMAZON_MUSIC_PARTITION, WINDOW_TITLE } from "../shared/config.js";
 import {
   createVolumeWindow,
   createMainWindow,
@@ -35,6 +38,29 @@ app.commandLine.appendSwitch("no-zygote");
 app.commandLine.appendSwitch("in-process-gpu");
 app.commandLine.appendSwitch("disable-gpu-sandbox");
 app.commandLine.appendSwitch("use-angle", "default");
+
+process.on("SIGINT", () => app.quit());
+process.on("SIGTERM", () => app.quit());
+
+function clearStaleLocks(dir: string): void {
+  try {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        clearStaleLocks(path.join(dir, entry.name));
+      } else if (entry.name === "LOCK") {
+        try {
+          fs.unlinkSync(path.join(dir, entry.name));
+        } catch { /* already gone */ }
+      }
+    }
+  } catch { /* dir not yet created */ }
+}
+
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  clearStaleLocks(path.join(app.getPath("userData"), "Partitions", "amazon-music"));
+}
 
 function buildMenu() {
   return Menu.buildFromTemplate([
@@ -138,10 +164,58 @@ function createAppWindow(): void {
   });
 }
 
+const cookiesBackupPath = path.join(app.getPath("userData"), "session-cookies.json");
+
+async function saveCookies(musicSession: electron.Session): Promise<void> {
+  const cookies = await musicSession.cookies.get({});
+  fs.writeFileSync(cookiesBackupPath, JSON.stringify(cookies), "utf8");
+}
+
+async function restoreCookies(musicSession: electron.Session): Promise<void> {
+  try {
+    const cookies = JSON.parse(fs.readFileSync(cookiesBackupPath, "utf8")) as electron.Cookie[];
+    for (const cookie of cookies) {
+      if (!cookie.domain) continue;
+      const host = cookie.domain.replace(/^\./, "");
+      try {
+        await musicSession.cookies.set({
+          url: `https://${host}${cookie.path ?? "/"}`,
+          name: cookie.name,
+          value: cookie.value,
+          domain: cookie.domain,
+          path: cookie.path ?? "/",
+          secure: cookie.secure,
+          httpOnly: cookie.httpOnly,
+          expirationDate: cookie.expirationDate ?? Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60,
+          sameSite: cookie.sameSite
+        });
+      } catch { /* skip cookies that fail to restore */ }
+    }
+  } catch { /* no backup file yet */ }
+}
+
+let flushingSession = false;
+
+app.on("before-quit", (event) => {
+  if (flushingSession) return;
+  event.preventDefault();
+  flushingSession = true;
+
+  const musicSession = session.fromPartition(AMAZON_MUSIC_PARTITION);
+  void Promise.all([
+    saveCookies(musicSession),
+    musicSession.cookies.flushStore(),
+    musicSession.flushStorageData()
+  ]).finally(() => app.quit());
+});
+
 app.whenReady().then(async () => {
   if (components?.whenReady) {
     await components.whenReady();
   }
+
+  const musicSession = session.fromPartition(AMAZON_MUSIC_PARTITION);
+  await restoreCookies(musicSession);
 
   nativeTheme.themeSource = "dark";
   Menu.setApplicationMenu(buildMenu());
